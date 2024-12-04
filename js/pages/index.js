@@ -76,40 +76,91 @@ function getCart() {
 
 // 加入購物車
 function addCart(id) {
-  const addCardBtns = document.querySelectorAll('.addCardBtn');
+  const addCardBtns = document.querySelectorAll(".addCardBtn");
   addCardBtns.forEach((item) => {
-    item.classList.add('disabled');
+    item.classList.add("disabled");
   });
-  const data = {
-    data: {
-      productId: id,
-      quantity: 1,
-    },
-  };
-  axios
-    .post(`${customerAPI}/carts`, data)
-    .then((res) => {
-      cartData = res.data.carts;
-      cartTotal = res.data.finalTotal;
-      renderCart();
-      Toast.fire({
-        icon: "success",
-        title: "商品已成功加入購物車"
-      });
-      addCardBtns.forEach((item) => {
-        item.classList.remove('disabled');
-      });
-      
-    })
-    .catch((err) => {
-      console.log(err);
+  // const data = {
+  //   data: {
+  //     productId: id,
+  //     quantity: 1,
+  //   },
+  // };
+  // axios
+  //   .post(`${customerAPI}/carts`, data)
+  //   .then((res) => {
+  //     cartData = res.data.carts;
+  //     cartTotal = res.data.finalTotal;
+  //     renderCart();
+  //     Toast.fire({
+  //       icon: "success",
+  //       title: "商品已成功加入購物車",
+  //     });
+  //     addCardBtns.forEach((item) => {
+  //       item.classList.remove("disabled");
+  //     });
+  //   })
+  //   .catch((err) => {
+  //     console.log(err);
+  //   });
+
+  let existingProduct = null;
+  // 判斷購物車中是否已經有該商品
+  cartData.forEach((item) => {
+    if (item.product.id === id) {
+      existingProduct = item;
+    }
+  });
+
+  // 若商品已存在，更新數量
+  if (existingProduct) {
+    let newQty = existingProduct.quantity + 1;
+    updateCart(existingProduct.id, newQty);
+    Toast.fire({
+      icon: "success",
+      title: "商品已成功加入購物車",
     });
+    // 設定延遲移除禁用狀態，等待 Toast 結束
+    setTimeout(() => {
+      addCardBtns.forEach((item) => {
+        item.classList.remove("disabled");
+      });
+    }, 1000);
+  } else {
+    // 若商品不存在，新增至購物車
+    const data = {
+      data: {
+        productId: id,
+        quantity: 1,
+      },
+    };
+    axios
+      .post(`${customerAPI}/carts`, data)
+      .then((res) => {
+        cartData = res.data.carts;
+        cartTotal = res.data.finalTotal;
+        renderCart();
+        Toast.fire({
+          icon: "success",
+          title: "商品已成功加入購物車",
+        });
+        // 設定延遲移除禁用狀態，等待 Toast 結束
+        setTimeout(() => {
+          addCardBtns.forEach((item) => {
+            item.classList.remove("disabled");
+          });
+        }, 1000);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  }
 }
 
 // 監聽產品列表加入購物車按鈕
 productWrap.addEventListener("click", (e) => {
   e.preventDefault();
-  if (e.target.classList.contains('addCardBtn')){
+  if (e.target.classList.contains("addCardBtn")) {
     addCart(e.target.dataset.id);
   }
 });
@@ -120,33 +171,31 @@ const discardAllBtn = document.querySelector(".discardAllBtn");
 
 function deleteAllCart() {
   Swal.fire({
-    title: "Are you sure?",
+    title: "你確定要刪除所有品項?",
     text: "You won't be able to revert this!",
     icon: "warning",
     showCancelButton: true,
     confirmButtonColor: "#3085d6",
     cancelButtonColor: "#d33",
-    confirmButtonText: "Yes, delete it!"
+    confirmButtonText: "刪除",
+    cancelButtonText: "取消",
   }).then((result) => {
     if (result.isConfirmed) {
-      axios
-    .delete(`${customerAPI}/carts`)
-    .then((res) => {
-      cartData = res.data.carts;
-      cartTotal = res.data.finalTotal;
-      renderCart();
-    });
-    // .catch((err) => {
-    //   console.log(err);
-    // });
+      axios.delete(`${customerAPI}/carts`).then((res) => {
+        cartData = res.data.carts;
+        cartTotal = res.data.finalTotal;
+        renderCart();
+      });
+      // .catch((err) => {
+      //   console.log(err);
+      // });
       Swal.fire({
-        title: "Deleted!",
-        text: "Your file has been deleted.",
-        icon: "success"
+        title: "刪除成功",
+        text: "您的購物車已清空",
+        icon: "success",
       });
     }
   });
-  
 }
 
 discardAllBtn.addEventListener("click", (e) => {
@@ -162,6 +211,10 @@ function deleteCart(id) {
       cartData = res.data.carts;
       cartTotal = res.data.finalTotal;
       renderCart();
+      Toast.fire({
+        icon: "success",
+        title: "刪除單一商品成功",
+      });
     })
     .catch((err) => {
       console.log(err);
@@ -176,7 +229,8 @@ function updateCart(id, qty) {
       quantity: qty,
     },
   };
-  axios.patch(`${customerAPI}/carts`, data)
+  axios
+    .patch(`${customerAPI}/carts`, data)
     .then((res) => {
       cartData = res.data.carts;
       cartTotal = res.data.finalTotal;
@@ -221,7 +275,7 @@ shoppingCartTableBody.addEventListener("click", (e) => {
     cartData.forEach((item) => {
       if (item.id === id) {
         result = item;
-        console.log(result);
+        // console.log(result);
       }
     });
     let qty = result.quantity - 1;
@@ -229,14 +283,12 @@ shoppingCartTableBody.addEventListener("click", (e) => {
   }
 });
 
-shoppingCartTableFoot.addEventListener('click',(e) => {
+shoppingCartTableFoot.addEventListener("click", (e) => {
   e.preventDefault();
-  if (e.target.classList.contains('discardAllBtn')){
+  if (e.target.classList.contains("discardAllBtn")) {
     deleteAllCart();
   }
 });
-
-
 
 // 渲染購物車
 function renderCart() {
@@ -260,7 +312,7 @@ function renderCart() {
                 ${item.quantity}
                 <button type="button" class="addBtn">+</button>
               </td>
-              <td>NT$${formatNumber(item.product.price)}</td>
+              <td>NT$${formatNumber(item.product.price * item.quantity)}</td>
               <td class="discardBtn">
                 <a href="#" class="material-icons removeBtn"> clear </a>
               </td>
@@ -280,74 +332,101 @@ function renderCart() {
             </tr>`;
 }
 
-const customerName = document.querySelector('#customerName');
-const customerPhone = document.querySelector('#customerPhone');
-const customerEmail = document.querySelector('#customerEmail');
-const customerAddress = document.querySelector('#customerAddress');
-const tradeWay = document.querySelector('#tradeWay');
+const customerName = document.querySelector("#customerName");
+const customerPhone = document.querySelector("#customerPhone");
+const customerEmail = document.querySelector("#customerEmail");
+const customerAddress = document.querySelector("#customerAddress");
+const tradeWay = document.querySelector("#tradeWay");
 
-const orderInfoBtn = document.querySelector('.orderInfo-btn');
+const orderInfoBtn = document.querySelector(".orderInfo-btn");
 
-const orderInfoForm = document.querySelector('.orderInfo-form');
+const orderInfoForm = document.querySelector(".orderInfo-form");
 
-function checkForm(){
+function checkForm() {
   const constraints = {
     姓名: {
       presence: { message: "^必填" },
     },
     電話: {
       presence: { message: "^必填" },
+      length: {
+        is: 10,
+        message: "^長度須為 10 碼",
+      },
     },
     Email: {
       presence: { message: "^必填" },
-      email: { message: "^請輸入正確的信箱格式" },
+      format: {
+        pattern:
+          /^\w+((-\w+)|(\.\w+))*\@[A-Za-z0-9]+((\.|-)[A-Za-z0-9]+)*\.[A-Za-z]+$/,
+        message: "^請輸入正確的信箱格式",
+      },
     },
     寄送地址: {
       presence: { message: "^必填" },
     },
   };
-  const error = validate( orderInfoForm, constraints);
-  return error;
+
+  // 清空所有錯誤訊息
+  const resetMessage = document.querySelectorAll("[data-message]");
+  resetMessage.forEach((item) => {
+    item.textContent = "";
+  });
+
+  const errors = validate(orderInfoForm, constraints);
+  console.log(errors);
+  if (errors) {
+    const errorsArr = Object.keys(errors);
+    console.log(errorsArr);
+    errorsArr.forEach((item) => {
+      const message = document.querySelector(`[data-message="${item}"]`);
+      message.textContent = errors[item][0];
+      console.log(errors[item][0]);
+    });
+  }
+  return errors;
 }
 
-
-function sendOrder(){
-  if (cartData.length === 0){
+function sendOrder() {
+  if (cartData.length === 0) {
     Swal.fire("購物車不得為空!");
-    // alert("購物車不得為空!");
     return;
   }
-  if (checkForm()){
-    Swal.fire("還有欄位沒有填寫呦!");
-    // alert("還有欄位沒有填寫呦!");
+  if (checkForm()) {
+    // Swal.fire("還有欄位沒有填寫呦!");
     return;
   }
   let data = {
-    "data": {
-      "user": {
-        "name": customerName.value.trim(),
-        "tel": customerPhone.value.trim(),
-        "email": customerEmail.value.trim(),
-        "address": customerAddress.value.trim(),
-        "payment": tradeWay.value
-      }
-    }
-  }
-  axios.post(`${customerAPI}/orders`, data)
+    data: {
+      user: {
+        name: customerName.value.trim(),
+        tel: customerPhone.value.trim(),
+        email: customerEmail.value.trim(),
+        address: customerAddress.value.trim(),
+        payment: tradeWay.value,
+      },
+    },
+  };
+  axios
+    .post(`${customerAPI}/orders`, data)
     .then((res) => {
       orderInfoForm.reset();
-      location.reload();  //預定資料送出，刷新購物車的資料使用
+      // location.reload();
+      Toast.fire({
+        icon: "success",
+        title: "訂單已成功送出",
+      });
+      getCart(); //預定資料送出，刷新購物車的資料使用
     })
     .catch((err) => {
       console.log(err);
     });
 }
 
-orderInfoBtn.addEventListener('click',(e) => {
+orderInfoBtn.addEventListener("click", (e) => {
   e.preventDefault();
   sendOrder();
 });
-
 
 // 初始化
 function init() {
