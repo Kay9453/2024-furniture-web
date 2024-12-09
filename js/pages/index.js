@@ -306,7 +306,7 @@ function renderCart() {
                   <p>${item.product.title}</p>
                 </div>
               </td>
-              <td>NT$${formatNumber(item.product.origin_price)}</td>
+              <td>NT$${formatNumber(item.product.price)}</td>
               <td>
                 <button type="button" class="minusBtn">-</button>
                 ${item.quantity}
